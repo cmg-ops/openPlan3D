@@ -12,6 +12,7 @@
   import { exportAsPNG, exportAsJSON, exportAsSVG, exportPDF } from '$lib/utils/export';
   import { exportDXF, exportDWG } from '$lib/utils/cadExport';
   import { createProjectFromRoomPlan, extractRoomJsonFromZip, isRoomPlanJson } from '$lib/utils/roomplanImport';
+  import { saveToHub, loadFromHub, getHubKey, setHubKey, getPlanId, setPlanId, isValidPlanId } from '$lib/services/hubSync';
   import SettingsDialog from './SettingsDialog.svelte';
   import AreaSummaryPanel from '$lib/components/sidebar/AreaSummaryPanel.svelte';
   import { saveState, saveError, lastSavedAt, manualSave, autoSave, initAutoSave } from '$lib/stores/saveStatus';
@@ -22,6 +23,8 @@
   onDestroy(() => openingLifetime.abort());
 
   let importError = $state<string | null>(null);
+  let hubError = $state<string | null>(null);
+  let hubNote = $state<string | null>(null);
   let packageError = $state<string | null>(null);
 
   let settingsOpen = $state(false);
@@ -256,6 +259,60 @@
       clearInterval(interval);
     };
   });
+
+  // ---- Hub sync -------------------------------------------------------
+  // Save puts the project on the dashboard; Load brings it back. Claude edits
+  // it in between. A load goes through openProject() so it is validated the
+  // same way an imported file is - a malformed plan refuses rather than
+  // half-loading over good work.
+
+  /** Ask once for the key and plan id, then remember them. */
+  function ensureHubSetup(): boolean {
+    hubError = null;
+    if (!getHubKey()) {
+      const entered = window.prompt('Paste your hub plan key (stored in this browser only):', '');
+      if (!entered) return false;
+      setHubKey(entered);
+    }
+    if (!isValidPlanId(getPlanId())) {
+      const entered = window.prompt('Plan id to use on the hub:', 'plan-house');
+      if (!entered) return false;
+      if (!isValidPlanId(entered)) {
+        hubError = 'That plan id is not valid. Use lowercase letters, digits and dashes, starting with plan-';
+        return false;
+      }
+      setPlanId(entered);
+    }
+    return true;
+  }
+
+  async function onSaveToHub() {
+    exportOpen = false;
+    hubError = null; hubNote = null;
+    if (!ensureHubSetup()) return;
+    const project = get(currentProject);
+    if (!project) { hubError = 'There is no project open to save.'; return; }
+    try {
+      await saveToHub(project);
+      hubNote = `Saved to the hub as ${getPlanId()}.`;
+    } catch (e: any) {
+      hubError = e?.message ?? 'Could not save to the hub.';
+    }
+  }
+
+  async function onLoadFromHub() {
+    exportOpen = false;
+    hubError = null; hubNote = null;
+    if (!ensureHubSetup()) return;
+    try {
+      const plan = await loadFromHub();
+      await openProject(async () => plan, 'import', openingLifetime.signal);
+      hubNote = `Loaded ${getPlanId()} from the hub.`;
+    } catch (e: any) {
+      const message = e?.message ?? 'Could not load from the hub.';
+      hubError = message.includes('No project was imported.') ? message : `${message} No project was imported.`;
+    }
+  }
 
   function onImportJSON() {
     importError = null;
@@ -578,6 +635,15 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Import JSON
         </button>
+        <div class="my-1 border-t border-gray-200"></div>
+        <button class="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2" onclick={onSaveToHub}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14a4 4 0 0 1 .9-7.9A5 5 0 0 1 18 6.5a3.5 3.5 0 0 1 .5 7"/><polyline points="8 15 12 19 16 15"/><line x1="12" y1="11" x2="12" y2="19"/></svg>
+          Save to Hub
+        </button>
+        <button class="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2" onclick={onLoadFromHub}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14a4 4 0 0 1 .9-7.9A5 5 0 0 1 18 6.5a3.5 3.5 0 0 1 .5 7"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="8" x2="12" y2="19"/></svg>
+          Load from Hub
+        </button>
         <button class="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2" onclick={newProject}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           New Project
@@ -636,5 +702,14 @@
 
 {#if importError}
   <ImportError title="Couldn’t open plan" message={importError} onDismiss={() => importError = null} />
+{/if}
+{#if hubError}
+  <ImportError title="Hub" message={hubError} onDismiss={() => hubError = null} />
+{/if}
+{#if hubNote}
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded bg-slate-800 text-white text-sm shadow-lg">
+    {hubNote}
+    <button class="ml-3 underline" onclick={() => hubNote = null}>Dismiss</button>
+  </div>
 {/if}
 {#if packageError}<ImportError title="Couldn’t export package" message={packageError} onDismiss={() => packageError = null} />{/if}
