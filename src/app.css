@@ -145,50 +145,91 @@ html.dark .bg-blue-50 { background-color: #1e3a5f !important; }
 
 /* ── E-Ink mode ─────────────────────────────────────────────────
    For the Bigme B7 Pro (7", 1264x1680, 300 ppi mono / 150 colour).
-   Aimed at reviewing a plan, not drawing one. Everything here is
-   scoped to html.eink, so switching it off restores the app exactly.
+   Aimed at reviewing a plan, not drawing one.
+
+   Rule: black or white, nothing in between. Greys read as dirt on a
+   reflective panel with no backlight, so they are pushed to one end or
+   the other. The canvas side is handled separately in einkInk.ts, which
+   snaps every drawn colour to pure black or pure white.
+
+   All of this is scoped to html.eink, so switching it off restores the
+   app exactly.
    ──────────────────────────────────────────────────────────────── */
 
-/* Movement is the worst thing you can do to an e-ink panel — every
-   frame is a visible smear. Kill all of it, including smooth scroll. */
+/* Movement is the worst thing you can do to an e-ink panel — every frame
+   is a visible smear. */
 html.eink *,
 html.eink *::before,
 html.eink *::after {
   transition: none !important;
   animation: none !important;
   scroll-behavior: auto !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
 }
 
-/* Strip colour. Doing it here rather than at the 261 individual canvas
-   draw calls keeps the change reversible and low-risk; if the result is
-   muddy in practice, the next step is a real palette layer in
-   canvasRenderer.ts that picks line weight and hatching instead of hue. */
+html.eink,
 html.eink body {
-  filter: grayscale(1) contrast(1.35);
+  background: #fff !important;
 }
 
-/* E-ink has no backlight, so soft greys read as dirt. Push the chrome to
-   flat white with hard black edges. */
-html.eink {
-  background: #fff;
+/* Every grey text class goes to solid black. White stays white so it can
+   sit on the black chrome. */
+html.eink [class*="text-gray-"],
+html.eink [class*="text-slate-"],
+html.eink [class*="text-zinc-"],
+html.eink [class*="text-neutral-"],
+html.eink [class*="text-stone-"],
+html.eink [class*="text-blue-"],
+html.eink [class*="text-red-"],
+html.eink [class*="text-green-"],
+html.eink [class*="text-amber-"],
+html.eink [class*="text-orange-"] {
+  color: #000 !important;
 }
+html.eink .text-white,
+html.eink [class*="text-white/"] {
+  color: #fff !important;
+}
+
+/* Panels, menus and fields become paper. */
+html.eink [class*="bg-gray-"],
+html.eink [class*="bg-slate-5"],
+html.eink [class*="bg-slate-1"],
+html.eink [class*="bg-zinc-"],
+html.eink [class*="bg-neutral-"],
+html.eink [class*="bg-blue-"],
+html.eink [class*="bg-white"] {
+  background-color: #fff !important;
+}
+
+/* The dark chrome — top bar and toolbars — becomes solid black rather than
+   a gradient of greys. */
 html.eink .bg-gradient-to-r,
 html.eink .bg-gradient-to-b,
 html.eink .bg-gradient-to-t,
-html.eink .bg-gradient-to-l {
+html.eink .bg-gradient-to-l,
+html.eink [class*="bg-slate-7"],
+html.eink [class*="bg-slate-8"],
+html.eink [class*="bg-slate-9"] {
   background-image: none !important;
   background-color: #000 !important;
+  color: #fff !important;
 }
-html.eink [class*="shadow"] {
-  box-shadow: none !important;
+
+/* Hairlines vanish at 1-bit. Give every edge a real black line. */
+html.eink [class*="border"] {
+  border-color: #000 !important;
 }
 html.eink [class*="rounded"] {
   border-radius: 2px !important;
 }
 
-/* Thin hairlines disappear at this contrast. Give panels real edges. */
-html.eink [class*="border"] {
-  border-color: #000 !important;
+/* Photographs and textures become line art rather than grey mush. */
+html.eink img,
+html.eink svg image {
+  filter: grayscale(1) contrast(1000%) !important;
 }
 
 /* Finger and EMR stylus both want a bigger target than a mouse does. */
@@ -212,9 +253,4 @@ html.eink .text-xs {
 html.eink .text-sm {
   font-size: 0.9375rem;
   line-height: 1.35rem;
-}
-
-/* Hover states mean nothing on a touch panel and only cost a refresh. */
-html.eink *:hover {
-  transition: none !important;
 }

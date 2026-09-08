@@ -13,6 +13,7 @@
    * Escape (or the TopBar Plan/Elevation toggle) returns to the plan view.
    */
   import { activeFloor, elevationWallId, selectedElementId, selectedElementIds, selectedRoomId, updateDoor, updateWindow, beginUndoGroup, endUndoGroup } from '$lib/stores/project';
+  import { inkContext } from '$lib/utils/einkInk';
   import { projectSettings, formatLength } from '$lib/stores/settings';
   import type { Door, Window as Win } from '$lib/models/types';
   import { openingOnWall } from '$lib/utils/wallProfiles';
@@ -349,7 +350,8 @@
     const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     c.width = Math.max(1, Math.round(cw * dpr));
     c.height = Math.max(1, Math.round(ch * dpr));
-    const ctx = c.getContext('2d');
+    const raw = c.getContext('2d');
+    const ctx = raw ? inkContext(raw) : null;
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cw, ch);
