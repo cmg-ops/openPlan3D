@@ -142,3 +142,79 @@ html.dark .bg-blue-50 { background-color: #1e3a5f !important; }
     break-inside: avoid;
   }
 }
+
+/* ── E-Ink mode ─────────────────────────────────────────────────
+   For the Bigme B7 Pro (7", 1264x1680, 300 ppi mono / 150 colour).
+   Aimed at reviewing a plan, not drawing one. Everything here is
+   scoped to html.eink, so switching it off restores the app exactly.
+   ──────────────────────────────────────────────────────────────── */
+
+/* Movement is the worst thing you can do to an e-ink panel — every
+   frame is a visible smear. Kill all of it, including smooth scroll. */
+html.eink *,
+html.eink *::before,
+html.eink *::after {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Strip colour. Doing it here rather than at the 261 individual canvas
+   draw calls keeps the change reversible and low-risk; if the result is
+   muddy in practice, the next step is a real palette layer in
+   canvasRenderer.ts that picks line weight and hatching instead of hue. */
+html.eink body {
+  filter: grayscale(1) contrast(1.35);
+}
+
+/* E-ink has no backlight, so soft greys read as dirt. Push the chrome to
+   flat white with hard black edges. */
+html.eink {
+  background: #fff;
+}
+html.eink .bg-gradient-to-r,
+html.eink .bg-gradient-to-b,
+html.eink .bg-gradient-to-t,
+html.eink .bg-gradient-to-l {
+  background-image: none !important;
+  background-color: #000 !important;
+}
+html.eink [class*="shadow"] {
+  box-shadow: none !important;
+}
+html.eink [class*="rounded"] {
+  border-radius: 2px !important;
+}
+
+/* Thin hairlines disappear at this contrast. Give panels real edges. */
+html.eink [class*="border"] {
+  border-color: #000 !important;
+}
+
+/* Finger and EMR stylus both want a bigger target than a mouse does. */
+html.eink button,
+html.eink [role="button"],
+html.eink select,
+html.eink input[type="checkbox"],
+html.eink input[type="radio"] {
+  min-height: 40px;
+}
+html.eink button {
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+/* Reviewing means reading. Nudge the small type up a step. */
+html.eink .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.15rem;
+}
+html.eink .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.35rem;
+}
+
+/* Hover states mean nothing on a touch panel and only cost a refresh. */
+html.eink *:hover {
+  transition: none !important;
+}
