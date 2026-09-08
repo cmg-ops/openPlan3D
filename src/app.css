@@ -145,19 +145,17 @@ html.dark .bg-blue-50 { background-color: #1e3a5f !important; }
 
 /* ── E-Ink mode ─────────────────────────────────────────────────
    For the Bigme B7 Pro (7", 1264x1680, 300 ppi mono / 150 colour).
-   Aimed at reviewing a plan, not drawing one.
+   Aimed at reviewing a plan, not drawing one. The canvas side is handled
+   in einkInk.ts, which snaps every drawn colour to pure black or white.
 
-   Rule: black or white, nothing in between. Greys read as dirt on a
-   reflective panel with no backlight, so they are pushed to one end or
-   the other. The canvas side is handled separately in einkInk.ts, which
-   snaps every drawn colour to pure black or pure white.
-
-   All of this is scoped to html.eink, so switching it off restores the
-   app exactly.
+   IMPORTANT selector rule, learned the hard way: use [class~="..."], which
+   matches a whole class token, NOT [class*="..."], which also matches
+   Tailwind variant prefixes. A rule written as [class*="bg-white"] also hits
+   `hover:bg-white/10`, and that is what turned the whole top toolbar into
+   blank white boxes with invisible white icons on 2026-09-07.
    ──────────────────────────────────────────────────────────────── */
 
-/* Movement is the worst thing you can do to an e-ink panel — every frame
-   is a visible smear. */
+/* Movement is the worst thing you can do to an e-ink panel. */
 html.eink *,
 html.eink *::before,
 html.eink *::after {
@@ -166,7 +164,6 @@ html.eink *::after {
   scroll-behavior: auto !important;
   text-shadow: none !important;
   box-shadow: none !important;
-  opacity: 1 !important;
 }
 
 html.eink,
@@ -174,47 +171,68 @@ html.eink body {
   background: #fff !important;
 }
 
-/* Every grey text class goes to solid black. White stays white so it can
-   sit on the black chrome. */
-html.eink [class*="text-gray-"],
-html.eink [class*="text-slate-"],
-html.eink [class*="text-zinc-"],
-html.eink [class*="text-neutral-"],
-html.eink [class*="text-stone-"],
-html.eink [class*="text-blue-"],
-html.eink [class*="text-red-"],
-html.eink [class*="text-green-"],
-html.eink [class*="text-amber-"],
-html.eink [class*="text-orange-"] {
-  color: #000 !important;
+/* ---- Paper: light panels, menus and fields ---- */
+html.eink [class~="bg-white"],
+html.eink [class~="bg-gray-50"],
+html.eink [class~="bg-gray-100"],
+html.eink [class~="bg-gray-200"],
+html.eink [class~="bg-slate-50"],
+html.eink [class~="bg-slate-100"],
+html.eink [class~="bg-slate-200"],
+html.eink [class~="bg-blue-50"],
+html.eink [class~="bg-blue-100"] {
+  background-color: #fff !important;
+  background-image: none !important;
 }
-html.eink .text-white,
-html.eink [class*="text-white/"] {
+
+/* ---- Ink: dark chrome and accent buttons become solid black, and
+        everything inside them turns white so the icons stay visible ---- */
+html.eink [class~="bg-gradient-to-r"],
+html.eink [class~="bg-gradient-to-b"],
+html.eink [class~="bg-gradient-to-t"],
+html.eink [class~="bg-gradient-to-l"],
+html.eink [class~="bg-slate-700"],
+html.eink [class~="bg-slate-800"],
+html.eink [class~="bg-slate-900"],
+html.eink [class~="bg-blue-500"],
+html.eink [class~="bg-blue-600"],
+html.eink [class~="bg-blue-700"] {
+  background-color: #000 !important;
+  background-image: none !important;
+  color: #fff !important;
+}
+html.eink [class~="bg-slate-700"] *,
+html.eink [class~="bg-slate-800"] *,
+html.eink [class~="bg-slate-900"] *,
+html.eink [class~="bg-blue-500"] *,
+html.eink [class~="bg-blue-600"] *,
+html.eink [class~="bg-blue-700"] *,
+html.eink [class~="bg-gradient-to-r"] > *,
+html.eink [class~="bg-gradient-to-b"] > * {
   color: #fff !important;
 }
 
-/* Panels, menus and fields become paper. */
-html.eink [class*="bg-gray-"],
-html.eink [class*="bg-slate-5"],
-html.eink [class*="bg-slate-1"],
-html.eink [class*="bg-zinc-"],
-html.eink [class*="bg-neutral-"],
-html.eink [class*="bg-blue-"],
-html.eink [class*="bg-white"] {
-  background-color: #fff !important;
+/* ---- Text: every grey goes solid black. White stays white so it can sit
+        on the black chrome above. ---- */
+html.eink [class~="text-gray-300"],
+html.eink [class~="text-gray-400"],
+html.eink [class~="text-gray-500"],
+html.eink [class~="text-gray-600"],
+html.eink [class~="text-gray-700"],
+html.eink [class~="text-gray-800"],
+html.eink [class~="text-gray-900"],
+html.eink [class~="text-slate-500"],
+html.eink [class~="text-slate-600"],
+html.eink [class~="text-slate-700"],
+html.eink [class~="text-slate-800"],
+html.eink [class~="text-blue-600"],
+html.eink [class~="text-blue-700"],
+html.eink [class~="text-red-600"],
+html.eink [class~="text-red-700"] {
+  color: #000 !important;
 }
-
-/* The dark chrome — top bar and toolbars — becomes solid black rather than
-   a gradient of greys. */
-html.eink .bg-gradient-to-r,
-html.eink .bg-gradient-to-b,
-html.eink .bg-gradient-to-t,
-html.eink .bg-gradient-to-l,
-html.eink [class*="bg-slate-7"],
-html.eink [class*="bg-slate-8"],
-html.eink [class*="bg-slate-9"] {
-  background-image: none !important;
-  background-color: #000 !important;
+html.eink [class~="text-white"],
+html.eink [class*="text-white/"] {
   color: #fff !important;
 }
 
@@ -239,10 +257,6 @@ html.eink select,
 html.eink input[type="checkbox"],
 html.eink input[type="radio"] {
   min-height: 40px;
-}
-html.eink button {
-  padding-top: 0.4rem;
-  padding-bottom: 0.4rem;
 }
 
 /* Reviewing means reading. Nudge the small type up a step. */
