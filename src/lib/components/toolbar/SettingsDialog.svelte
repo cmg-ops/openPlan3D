@@ -5,11 +5,40 @@
   import type { Project } from '$lib/models/types';
   import { themePreference, type ThemePreference } from '$lib/stores/theme';
   import { einkMode, setEinkMode } from '$lib/stores/einkMode';
+  import { getHubKey, setHubKey, getPlanId, setPlanId, isValidPlanId } from '$lib/services/hubSync';
   import OpenAISettings from '$lib/components/ai/OpenAISettings.svelte';
   import FloorElevations from './FloorElevations.svelte';
 
   let { open = $bindable(false) }: { open: boolean } = $props();
+
+  // Pull the stored hub credentials in whenever the dialog is opened, so the
+  // fields always show what is actually saved rather than a stale copy.
+  $effect(() => {
+    if (open) {
+      hubKey = getHubKey();
+      hubPlanId = getPlanId();
+      hubSaved = false;
+      hubIdError = null;
+    }
+  });
+
+  function saveHubSettings() {
+    const id = hubPlanId.trim();
+    if (!isValidPlanId(id)) {
+      hubIdError = 'Plan id must start with plan- and use only lowercase letters, digits and dashes.';
+      hubSaved = false;
+      return;
+    }
+    hubIdError = null;
+    setHubKey(hubKey);
+    setPlanId(id);
+    hubSaved = true;
+  }
   let einkOn = $state(false);
+  let hubKey = $state('');
+  let hubPlanId = $state('');
+  let hubSaved = $state(false);
+  let hubIdError = $state<string | null>(null);
   einkMode.subscribe((v) => { einkOn = v; });
   let projectName = $state('');
   let projectDescription = $state('');
@@ -314,6 +343,44 @@
           </div>
         {:else if activeTab === 'ai'}
           <div class="space-y-4">
+            <div class="pb-4 border-b border-gray-200 dark:border-gray-600">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Hub sync</span>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Saves this plan to your DailyHobbyist dashboard so Claude can read and edit it between
+                a Save and a Load. Both values are stored in this browser only. The key can reach
+                nothing on the dashboard except documents whose id starts with <code>plan-</code>.
+              </p>
+              <label class="block mb-2">
+                <span class="text-xs text-gray-600 dark:text-gray-400 block mb-1">Plan key</span>
+                <input
+                  type="password"
+                  bind:value={hubKey}
+                  placeholder="paste your plan key"
+                  class="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                />
+              </label>
+              <label class="block mb-2">
+                <span class="text-xs text-gray-600 dark:text-gray-400 block mb-1">Plan id</span>
+                <input
+                  type="text"
+                  bind:value={hubPlanId}
+                  placeholder="plan-house"
+                  class="w-full px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                />
+              </label>
+              {#if hubIdError}
+                <p class="text-xs text-red-600 mb-2">{hubIdError}</p>
+              {/if}
+              <button
+                onclick={saveHubSettings}
+                class="px-3 py-2 text-sm rounded bg-slate-700 text-white hover:bg-slate-800"
+              >
+                Save hub settings
+              </button>
+              {#if hubSaved}
+                <span class="ml-2 text-xs text-gray-600 dark:text-gray-400">Saved.</span>
+              {/if}
+            </div>
             <div>
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Gemini API Key</span>
               <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Required for AI-powered photorealistic rendering. Your key is stored locally in your browser only - never sent to our servers.</p>
