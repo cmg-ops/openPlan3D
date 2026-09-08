@@ -13,7 +13,7 @@
   import { exportDXF, exportDWG } from '$lib/utils/cadExport';
   import { createProjectFromRoomPlan, extractRoomJsonFromZip, isRoomPlanJson } from '$lib/utils/roomplanImport';
   import { saveToHub, loadFromHub, getHubKey, setHubKey, getPlanId, setPlanId, isValidPlanId } from '$lib/services/hubSync';
-  import { einkMode, initEinkMode, toggleEinkMode } from '$lib/stores/einkMode';
+  import { initEinkMode } from '$lib/stores/einkMode';
   import SettingsDialog from './SettingsDialog.svelte';
   import AreaSummaryPanel from '$lib/components/sidebar/AreaSummaryPanel.svelte';
   import { saveState, saveError, lastSavedAt, manualSave, autoSave, initAutoSave } from '$lib/stores/saveStatus';
@@ -24,8 +24,6 @@
   onDestroy(() => openingLifetime.abort());
 
   let importError = $state<string | null>(null);
-  let einkOn = $state(false);
-  onDestroy(einkMode.subscribe((v) => { einkOn = v; }));
   let hubError = $state<string | null>(null);
   let hubNote = $state<string | null>(null);
   let packageError = $state<string | null>(null);
@@ -413,16 +411,6 @@
   </div>
 
   <div class="flex-1"></div>
-
-  <button
-    onclick={toggleEinkMode}
-    class="p-1.5 rounded transition-colors {einkOn ? 'bg-white text-slate-900' : 'text-white/80 hover:text-white hover:bg-white/10'}"
-    title={einkOn ? 'E-Ink mode on — tap to return to normal' : 'E-Ink mode: black and white, no animation, bigger targets'}
-    aria-label="Toggle E-Ink mode"
-    aria-pressed={einkOn}
-  >
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><path d="M3 12h9"/></svg>
-  </button>
 
   <button onclick={undo} class="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors" title="Undo (Ctrl+Z)" aria-label="Undo">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>

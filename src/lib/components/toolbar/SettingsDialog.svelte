@@ -4,10 +4,13 @@
   import { currentProject, updateProjectName } from '$lib/stores/project';
   import type { Project } from '$lib/models/types';
   import { themePreference, type ThemePreference } from '$lib/stores/theme';
+  import { einkMode, setEinkMode } from '$lib/stores/einkMode';
   import OpenAISettings from '$lib/components/ai/OpenAISettings.svelte';
   import FloorElevations from './FloorElevations.svelte';
 
   let { open = $bindable(false) }: { open: boolean } = $props();
+  let einkOn = $state(false);
+  einkMode.subscribe((v) => { einkOn = v; });
   let projectName = $state('');
   let projectDescription = $state('');
 
@@ -289,6 +292,24 @@
                   </button>
                 {/each}
               </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-600">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={einkOn}
+                  onchange={(e) => setEinkMode(e.currentTarget.checked)}
+                  class="mt-0.5 w-4 h-4 shrink-0"
+                />
+                <span>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300 block">E-Ink mode</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400 block mt-1">
+                    Black and white, no animation, larger controls. Built for reviewing a plan on an
+                    e-ink tablet rather than drawing one. Switches out of the 3D view.
+                  </span>
+                </span>
+              </label>
             </div>
           </div>
         {:else if activeTab === 'ai'}
